@@ -1,40 +1,34 @@
 (ns router.core
   (:gen-class)
-  (:use [clojure.string
-         :only [replace]
-         :rename {replace str-replace}]))
+  (:require [clojure.string :as str]))
 
 (defn- build-route [[url-spec handler]]
-  (let [regex (re-pattern (str-replace url-spec #":.+?\/" "(.+?)/"))]
-    `(fn [url#]
-       (when-let [match# (re-matches ~regex url#)]
-         (if (coll? match#)
-           (fn [] (apply ~handler (drop 1 match#)))
-           (fn [] (~handler)))))))
+  (let [regex (re-pattern (str/replace url-spec #":.+?\/" "(.+?)/"))]
+    (fn [url]
+      (when-let [match (re-matches regex url)]
+        (if (coll? match)
+          (fn [] (apply handler (drop 1 match)))
+          (fn [] (handler)))))))
 
 (defn not-found [] (println "404 Not Found"))
 
-(defmacro defroutes [& route-forms]
-  (let [handlers (map build-route (partition 2 route-forms))]
-    `(def routes [~@handlers (fn [url#] (fn [] (not-found)))])))
+(defn build-routes [& route-forms]
+  (let [handlers (mapv build-route (partition 2 route-forms))]
+    (conj handlers (fn [url] not-found))))
 
-(defroutes
-  "/router/both/"            (fn [] (println "router both"))
-  "/only/controller/"        (fn [] (println "only controller"))
-  "/router/params/:x/:y/:z/" (fn [x y z] (println x y z)))
+(def routes
+  (build-routes
+    "/router/both/"            (fn [] (println "router both"))
+    "/only/controller/"        (fn [] (println "only controller"))
+    "/router/params/:x/:y/:z/" (fn [x y z] (println x y z))))
 
-(defmacro with-handler [[var url] & body]
-  `(let [url# ~url
-         handler# (some #(% url#) routes)
-         ~var handler#]
-     (do ~@body)))
+(defn handler-for [url]
+  (some #(% url) routes))
 
 (defn route [url]
-  (with-handler [handler url]
+  (let [handler (handler-for url)]
     (handler)))
 
 (defn -main [& args]
   (route "/router/both/")
   (route "/only/controller/")
-  (route "/router/params/1/2/3/")
-  (route "NOPE"))
