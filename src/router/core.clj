@@ -16,19 +16,19 @@
   (let [handlers (mapv build-route (partition 2 route-forms))]
     (conj handlers (fn [url] not-found))))
 
-(def routes
-  (build-routes
-    "/router/both/"            (fn [] (println "router both"))
-    "/only/controller/"        (fn [] (println "only controller"))
-    "/router/params/:x/:y/:z/" (fn [x y z] (println x y z))))
-
-(defn handler-for [url]
+(defn handler-for [url routes]
   (some #(% url) routes))
 
-(defn route [url]
-  (let [handler (handler-for url)]
+(defn route [url routes]
+  (let [handler (handler-for url routes)]
     (handler)))
 
 (defn -main [& args]
-  (route "/router/both/")
-  (route "/only/controller/")
+  (let [routes (build-routes
+                 "/router/both/"            (fn [] (println "router both"))
+                 "/only/controller/"        (fn [] (println "only controller"))
+                 "/router/params/:x/:y/:z/" (fn [x y z] (println x y z)))]
+    (route "/router/both/" routes)
+    (route "/only/controller/" routes)
+    (route "/router/params/1/2/3/" routes)
+    (route "NOPE" routes)))
