@@ -1,9 +1,9 @@
 (ns router.tokens
   (:gen-class)
+  (:refer-clojure :exclude [first rest])
   (:require [clojure.string :as str]))
 
 (defn- tokenizer [url f]
-  (println url)
   (if (= url "/")
     ""
     ;; Get rid of initial /
@@ -19,7 +19,9 @@
 (defn rest [url]
   (tokenizer url
              (fn [cleaned-url first-slash-pos]
-               (subs cleaned-url first-slash-pos))))
+               (let [result (subs cleaned-url first-slash-pos)]
+                 (when-not (= result "/")
+                   result)))))
 
 (defn all [url]
   (drop 1 (str/split url #"/")))
