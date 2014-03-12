@@ -32,8 +32,10 @@
      :children (list (build-one tail handler))
      :handler nil}
     {:root (tks/first url-spec)
-     :children ()
-     :handler handler}))
+     :children (list {:root nil
+                      :children ()
+                      :handler handler})
+     :handler nil}))
 
 (defn- build-all [route-forms]
   (if (= (count route-forms) 1)
