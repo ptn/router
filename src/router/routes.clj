@@ -37,9 +37,9 @@
 
 (defn- build-all [route-forms]
   (if (= (count route-forms) 1)
-    (list (apply build-one (first route-forms)))
+    (list (build-one (ffirst route-forms) (second (first route-forms))))
     (insert (build-all (rest route-forms))
-            (apply build-one (first route-forms)))))
+            (build-one (ffirst route-forms) (second (first route-forms))))))
 
 (defn build [& route-forms]
   (-> (partition 2 route-forms) build-all)) ;;compile-tree))
