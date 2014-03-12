@@ -1,6 +1,5 @@
 (ns router.core
   (:gen-class)
-  (:require [clojure.string :as str])
   (:require [router.routes :as routes]))
 
 (defn route [url routes]
@@ -9,9 +8,11 @@
 
 (defn -main [& args]
   (let [routes (routes/build
-                "/router/one/" (fn [] (println "router one"))
-                "/router/two/" (fn [] (println "router two"))
-                "/other/base/" (fn [] (println "other base")))]
+                "/router/one/"   (fn [] (println "router one"))
+                ;; "/router/two/a/" (fn [] (println "router two a"))
+                ;; "/router/two/b/" (fn [] (println "router two b"))
+                ;; "/router/three/" (fn [] (println "router three"))
+                "/other/base/"   (fn [] (println "other base")))]
     (println routes)))
                 ;; "/only/controller/"        (fn [] (println "only controller"))
                 ;; "/router/params/:x/:y/:z/" (fn [x y z] (println x y z)))]

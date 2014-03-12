@@ -1,7 +1,10 @@
+;; TODO
+;;
+;; * compile the tree into closures
+
 (ns router.routes
   (:gen-class)
-  (:require [clojure.string :as str]
-            [router.tokens :as tks]))
+  (:require [router.tokens :as tks]))
 
 (defn not-found [] (println "404 Not Found"))
 
@@ -9,10 +12,12 @@
   (some #(% url) routes))
 
 (defn- merge-nodes [old new]
-  {:root (:root old)
-   :data {:children (into (:children (:data old))
-                          (:children (:data new)))
-          :handler nil}})
+  (if (or (empty? (:children old))
+          (empty? (:children new)))
+    {:root (:root old)
+     :children (into (:children old)
+                     (:children new))
+     :handler nil}))
 
 (defn- insert [tree node]
   (if-let [match (some #(when (= (:root %) (:root node))
@@ -23,15 +28,16 @@
 
 (defn- build-one [url-spec handler]
   (if-let [tail (tks/rest url-spec)]
-    (let [children [(build-one tail handler)]]
-      {:root (tks/first url-spec)
-       :data {:children children :handler nil}})
     {:root (tks/first url-spec)
-     :data {:children nil :handler handler}}))
+     :children (list (build-one tail handler))
+     :handler nil}
+    {:root (tks/first url-spec)
+     :children ()
+     :handler handler}))
 
 (defn- build-all [route-forms]
   (if (= (count route-forms) 1)
-    [(apply build-one (first route-forms))]
+    (list (apply build-one (first route-forms)))
     (insert (build-all (rest route-forms))
             (apply build-one (first route-forms)))))
 

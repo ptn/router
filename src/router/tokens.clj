@@ -1,3 +1,8 @@
+;; TODO
+;;
+;; * deal with missing / at the beginning or end - for now assume they are
+;;   always there
+
 (ns router.tokens
   (:gen-class)
   (:refer-clojure :exclude [first rest])
@@ -27,4 +32,5 @@
   (drop 1 (str/split url #"/")))
 
 (defn last? [url]
-  (= "" (rest url)))
+  (when-not (empty? url)
+    (= "" (rest url))))
