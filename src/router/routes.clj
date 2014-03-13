@@ -9,7 +9,11 @@
 (defn not-found [] (println "404 Not Found"))
 
 (defn handler-for [url routes]
-  (some #(% url) routes))
+  (if-let [match (some #(when (= (:root %) (tks/first url)) %) routes)]
+    (if (empty? (:children match))
+      (:handler match)
+      (recur (tks/rest url) (:children match)))
+    not-found))
 
 (defn- insert-one [tree node]
   (if-let [match (some #(when (= (:root %) (:root node))

@@ -17,9 +17,10 @@
       (f url first-slash-pos))))
 
 (defn first [url]
-  (tokenizer url
-             (fn [cleaned-url first-slash-pos]
-               (subs cleaned-url 0 first-slash-pos))))
+  (when url
+    (tokenizer url
+               (fn [cleaned-url first-slash-pos]
+                 (subs cleaned-url 0 first-slash-pos)))))
 
 (defn rest [url]
   (tokenizer url
