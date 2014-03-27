@@ -10,10 +10,12 @@
 
 (defn not-found [] (println "404 Not Found"))
 
-(defn handler-for [url router]
+(defn handler-for
+  "Returns the handler and the captured variables"
+  [url router]
   (if-let [match (router url)]
     match
-    not-found))
+    [not-found []]))
 
 (defn- insert-one [tree node]
   (if-let [match (some #(when (= (:root %) (:root node))
@@ -57,19 +59,31 @@
     (insert-one (build-all (rest route-forms))
             (build-one (ffirst route-forms) (second (first route-forms))))))
 
+(defn compile-leaf [node]
+  (if (= (first (:root node)) \:)
+    (fn [url captures]
+      [(:handler node) (conj captures (tks/first url))])
+    (fn [url captures]
+      (when (= (:root node) (tks/first url))
+        [(:handler node) captures]))))
+
+(defn compile-internal [node]
+  (let [compiled-ch (map compile-one (:children node))]
+    (if (= (first (:root node)) \:)
+      (fn [url captures]
+        (some #(% (tks/rest url) (conj captures (tks/first url))) compiled-ch))
+      (fn [url captures]
+        (when (= (:root node) (tks/first url))
+          (some #(% (tks/rest url) captures) compiled-ch))))))
+
 (defn compile-one [node]
   (if (empty? (:children node))
-    (fn [url]
-      (when (= (:root node) (tks/first url))
-        (:handler node)))
-    (let [compiled-ch (map compile-one (:children node))]
-      (fn [url]
-        (when (= (:root node) (tks/first url))
-          (some #(% (tks/rest url)) compiled-ch))))))
+    (compile-leaf node)
+    (compile-internal node)))
 
 (defn compile-tree [tree]
   (let [compiled-nodes (map compile-one tree)]
-    (fn [url] (some #(% url) compiled-nodes))))
+    (fn [url] (some #(% url []) compiled-nodes))))
 
 (defn build [& route-forms]
   (-> route-forms build-all compile-tree))
