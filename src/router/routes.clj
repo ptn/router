@@ -6,13 +6,13 @@
   (:gen-class)
   (:require [router.tokens :as tks]))
 
+(declare merge-nodes)
+
 (defn not-found [] (println "404 Not Found"))
 
-(defn handler-for [url routes]
-  (if-let [match (some #(when (= (:root %) (tks/first url)) %) routes)]
-    (if (empty? (:children match))
-      (:handler match)
-      (recur (tks/rest url) (:children match)))
+(defn handler-for [url router]
+  (if-let [match (router url)]
+    match
     not-found))
 
 (defn- insert-one [tree node]
@@ -57,5 +57,19 @@
     (insert-one (build-all (rest route-forms))
             (build-one (ffirst route-forms) (second (first route-forms))))))
 
+(defn compile-one [node]
+  (if (empty? (:children node))
+    (fn [url]
+      (when (= (:root node) (tks/first url))
+        (:handler node)))
+    (let [compiled-ch (map compile-one (:children node))]
+      (fn [url]
+        (when (= (:root node) (tks/first url))
+          (some #(% (tks/rest url)) compiled-ch))))))
+
+(defn compile-tree [tree]
+  (let [compiled-nodes (map compile-one tree)]
+    (fn [url] (some #(% url) compiled-nodes))))
+
 (defn build [& route-forms]
-  (-> (partition 2 route-forms) build-all))
+  (-> route-forms build-all compile-tree))
