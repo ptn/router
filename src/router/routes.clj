@@ -1,12 +1,9 @@
-;; TODO
-;;
-;; * compile the tree into closures
-
 (ns router.routes
   (:gen-class)
   (:require [router.tokens :as tks]))
 
 (declare merge-nodes)
+(declare compile-one)
 
 (defn not-found [] (println "404 Not Found"))
 
@@ -33,8 +30,6 @@
   "Merge nodes that have the same :root"
   [old new]
   (cond
-   ;; these two mean that one node is a special match or not-found node,
-   ;; so just return the other.
    (empty? (:children old)) new
    (empty? (:children new)) old
    :else {:root (:root old)
@@ -55,9 +50,19 @@
 
 (defn- build-all [route-forms]
   (if (= (count route-forms) 1)
+    ;; we need lists here because conj'ing onto a list essentially
+    ;; stores the route specs in reverse order, and later when we
+    ;; compile we need to do so backwards, in order to compile the
+    ;; node that doesn't depend on any one first and close over that
+    ;; compiled result when compiling its parent - once the parent is
+    ;; compiled, there's no way to adding a reference to its
+    ;; children. that's kinda what compiling means. reversing
+    ;; :children would work, but we would need to reverse every
+    ;; :children before compiling them. I think using a list is a
+    ;; solution just as good.
     (list (build-one (ffirst route-forms) (second (first route-forms))))
     (insert-one (build-all (rest route-forms))
-            (build-one (ffirst route-forms) (second (first route-forms))))))
+                (build-one (ffirst route-forms) (second (first route-forms))))))
 
 (defn compile-leaf [node]
   (if (= (first (:root node)) \:)
