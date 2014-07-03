@@ -90,5 +90,5 @@
   (let [compiled-nodes (map compile-one tree)]
     (fn [url] (some #(% url []) compiled-nodes))))
 
-(defn build [& route-forms]
-  (-> route-forms build-all compile-tree))
+(defn build [route-forms]
+  (-> (partition 2 route-forms) build-all compile-tree))

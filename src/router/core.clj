@@ -7,14 +7,12 @@
     (apply handler captures)))
 
 (defn -main [& args]
-  (let [routes (routes/build
-                ["/router/one/"   (fn [] (println "router one"))]
-                ["/router/two/a/" (fn [] (println "router two a"))]
-                ["/router/two/b/" (fn [] (println "router two b"))]
-                ["/other/base/"   (fn [] (println "other base"))]
-                ["/router/three/" (fn [] (println "router three"))]
-                ["/router/params/:x/:y/3/" (fn [x y] (println x y))])]
-    ;; "/only/controller/"        (fn [] (println "only controller"))))
+  (let [routes (routes/build ["/router/one/"   (fn [] (println "router one"))
+                              "/router/two/a/" (fn [] (println "router two a"))
+                              "/router/two/b/" (fn [] (println "router two b"))
+                              "/other/base/"   (fn [] (println "other base"))
+                              "/router/three/" (fn [] (println "router three"))
+                              "/router/params/:x/:y/3/" (fn [x y] (println x y))])]
     (route "/router/two/b/" routes)
     (route "/router/two/a/" routes)
     (route "/router/three/" routes)
