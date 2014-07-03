@@ -7,13 +7,6 @@
 
 (defn not-found [] (println "404 Not Found"))
 
-(defn handler-for
-  "Returns the handler and the captured variables"
-  [url router]
-  (if-let [match (router url)]
-    match
-    [not-found []]))
-
 (defn- insert-one [tree node]
   (if-let [match (some #(when (= (:root %) (:root node))
                           %)
@@ -86,9 +79,26 @@
     (compile-leaf node)
     (compile-internal node)))
 
-(defn compile-tree [tree]
+(defn compile-tree
+  [tree]
   (let [compiled-nodes (map compile-one tree)]
     (fn [url] (some #(% url []) compiled-nodes))))
 
-(defn build [route-forms]
-  (-> (partition 2 route-forms) build-all compile-tree))
+(defn matcher-for
+  "Creates a closure that returns the handler and captured variables
+  for a url, or 404."
+  [spec]
+  (let [tree (-> (partition 2 spec) build-all compile-tree)]
+    (fn [url]
+      (if-let [match (tree url)]
+        match
+        [not-found []]))))
+
+(defn router-fn
+  "Creates a matcher for the given spec and returns a closure that
+  calls the matched handler."
+  [spec]
+  (let [matcher (matcher-for spec)]
+    (fn [url]
+      (let [[handler captures] (matcher url)]
+        (apply handler captures)))))
