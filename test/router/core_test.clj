@@ -1,7 +1,6 @@
 (ns router.core-test
   (:require [clojure.test :refer :all]
-            [router.core :refer :all])
-  (:use [router.routes :only [with-router]]))
+            [router.core :refer :all]))
 
 (defmacro assert-throws404
   [router-call]
