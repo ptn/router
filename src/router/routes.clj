@@ -5,7 +5,7 @@
 (declare merge-nodes)
 (declare compile-one)
 
-(defn not-found [] (println "404 Not Found"))
+(defn not-found [] (throw (Exception. "404 Not Found")))
 
 (defn- insert-one [tree node]
   (if-let [match (some #(when (= (:root %) (:root node))
@@ -59,20 +59,22 @@
 
 (defn compile-leaf [node]
   (if (= (first (:root node)) \:)
-    (fn [url captures]
-      [(:handler node) (conj captures (tks/first url))])
-    (fn [url captures]
-      (when (= (:root node) (tks/first url))
-        [(:handler node) captures]))))
+    `(fn [url# captures#]
+       [(:handler ~node) (conj captures# (tks/first url#))])
+    `(fn [url# captures#]
+       (when (= (:root ~node) (tks/first url#))
+         [(:handler ~node) captures#]))))
 
 (defn compile-internal [node]
-  (let [compiled-ch (map compile-one (:children node))]
+  (let [compiled-ch (mapv compile-one (:children node))]
     (if (= (first (:root node)) \:)
-      (fn [url captures]
-        (some #(% (tks/rest url) (conj captures (tks/first url))) compiled-ch))
-      (fn [url captures]
-        (when (= (:root node) (tks/first url))
-          (some #(% (tks/rest url) captures) compiled-ch))))))
+      `(fn [url# captures#]
+         (some #(% (tks/rest url#) (conj captures# (tks/first url#)))
+               ~compiled-ch))
+      `(fn [url# captures#]
+         ;; why is that quote needed here wtf
+         (when (= (:root '~node) (tks/first url#))
+           (some #(% (tks/rest url#) captures#) ~compiled-ch))))))
 
 (defn compile-one [node]
   (if (empty? (:children node))
@@ -81,24 +83,20 @@
 
 (defn compile-tree
   [tree]
-  (let [compiled-nodes (map compile-one tree)]
-    (fn [url] (some #(% url []) compiled-nodes))))
+  (let [compiled-nodes (mapv compile-one tree)]
+    `(fn [url#] (some #(% url# []) ~compiled-nodes))))
 
-(defn matcher-for
-  "Creates a closure that returns the handler and captured variables
-  for a url, or 404."
-  [spec]
-  (let [tree (-> (partition 2 spec) build-all compile-tree)]
-    (fn [url]
-      (if-let [match (tree url)]
-        match
-        [not-found []]))))
-
-(defn router-fn
-  "Creates a matcher for the given spec and returns a closure that
-  calls the matched handler."
-  [spec]
-  (let [matcher (matcher-for spec)]
-    (fn [url]
-      (let [[handler captures] (matcher url)]
-        (apply handler captures)))))
+(defmacro with-router
+  "Compiles the routes spec into a closure that returns the handler
+and captured variables, and then invokes the former with the latter as
+parameters."
+  [name spec & body]
+  (let [tree (-> (partition 2 spec) build-all compile-tree)
+        matcher `(fn [url#]
+                   (if-let [match# (~tree url#)]
+                     match#
+                     [not-found []]))]
+    `(let [~name (fn [url#]
+                   (let [[handler# captures#] (~matcher url#)]
+                     (apply handler# captures#)))]
+       ~@body)))
