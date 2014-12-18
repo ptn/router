@@ -8,26 +8,22 @@
   (:refer-clojure :exclude [first rest])
   (:require [clojure.string :as str]))
 
-(defn- tokenizer [url f]
-  (if (= url "/")
-    ""
-    ;; Get rid of initial /
-    (let [url (subs url 1)
-          first-slash-pos (.indexOf url "/")]
-      (f url first-slash-pos))))
-
 (defn first [url]
-  (when url
-    (tokenizer url
-               (fn [cleaned-url first-slash-pos]
-                 (subs cleaned-url 0 first-slash-pos)))))
+   (when (string? url)
+     (if (empty? url)  ""
+       (let [a (str/split url #"/")]
+          (if  (seq a)  (let [url (nth a 0) ](if (empty? url) (nth a 1)  url)) "")))))
+
 
 (defn rest [url]
-  (tokenizer url
-             (fn [cleaned-url first-slash-pos]
-               (let [result (subs cleaned-url first-slash-pos)]
-                 (when-not (= result "/")
-                   result)))))
+   (when (string? url)
+     (if (empty? url)  ""
+       (let [a (str/split url #"/")]
+         (if (seq a)
+           (let [url (nth a 0) ]
+             (if (empty? url)
+               (str "/"(str/join #"/" (subvec a 2)))
+               (str "/"(str/join #"/" (subvec a 1))))) "")))))
 
 (defn all [url]
   (drop 1 (str/split url #"/")))
